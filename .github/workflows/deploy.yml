@@ -29,38 +29,41 @@ jobs:
           import glob
           import os
 
-          # Detect branch name properly
           branch = os.environ.get("GITHUB_REF").split("/")[-1]
-
           print(f"Deploying branch: {branch}")
+
+          # ✅ Use same warehouse for both
+          warehouse = "${{ secrets.SNOWFLAKE_WAREHOUSE }}"
 
           if branch == "develop":
               user = "${{ secrets.DEV_SNOWFLAKE_USERNAME }}"
               password = "${{ secrets.DEV_SNOWFLAKE_PASSWORD }}"
               database = "${{ secrets.DEV_SNOWFLAKE_DATABASE }}"
               schema = "${{ secrets.DEV_SNOWFLAKE_SCHEMA }}"
-              warehouse = "${{ secrets.DEV_SNOWFLAKE_WAREHOUSE }}"
           else:
               user = "${{ secrets.PROD_SNOWFLAKE_USERNAME }}"
               password = "${{ secrets.PROD_SNOWFLAKE_PASSWORD }}"
               database = "${{ secrets.PROD_SNOWFLAKE_DATABASE }}"
               schema = "${{ secrets.PROD_SNOWFLAKE_SCHEMA }}"
-              warehouse = "${{ secrets.PROD_SNOWFLAKE_WAREHOUSE }}"
 
-          # Connect to Snowflake
+          # Connect (without forcing warehouse yet)
           conn = snowflake.connector.connect(
               user=user,
               password=password,
-              account="${{ secrets.SNOWFLAKE_ACCOUNT }}",
-              warehouse=warehouse,
-              database=database,
-              schema=schema
+              account="${{ secrets.SNOWFLAKE_ACCOUNT }}"
           )
 
           cursor = conn.cursor()
 
-          # Execute ALL SQL files in sql folder
-          for file in glob.glob("sql/*.sql"):
+          # ✅ Explicitly activate context
+          cursor.execute(f"USE WAREHOUSE {warehouse}")
+          cursor.execute(f"USE DATABASE {database}")
+          cursor.execute(f"USE SCHEMA {schema}")
+
+          print("Warehouse, Database and Schema activated")
+
+          # ✅ Execute ALL SQL files in order
+          for file in sorted(glob.glob("sql/*.sql")):
               print(f"Executing {file}")
 
               with open(file) as f:
