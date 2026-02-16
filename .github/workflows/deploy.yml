@@ -22,13 +22,17 @@ jobs:
       - name: Install Snowflake Connector
         run: pip install snowflake-connector-python
 
-      - name: Execute SQL
+      - name: Execute SQL Files
         run: |
           python <<EOF
           import snowflake.connector
+          import glob
           import os
 
-          branch = "${GITHUB_REF##*/}"
+          # Detect branch name properly
+          branch = os.environ.get("GITHUB_REF").split("/")[-1]
+
+          print(f"Deploying branch: {branch}")
 
           if branch == "develop":
               user = "${{ secrets.DEV_SNOWFLAKE_USERNAME }}"
@@ -43,6 +47,7 @@ jobs:
               schema = "${{ secrets.PROD_SNOWFLAKE_SCHEMA }}"
               warehouse = "${{ secrets.PROD_SNOWFLAKE_WAREHOUSE }}"
 
+          # Connect to Snowflake
           conn = snowflake.connector.connect(
               user=user,
               password=password,
@@ -54,15 +59,19 @@ jobs:
 
           cursor = conn.cursor()
 
-          with open("sql/create_table.sql") as f:
-              sql = f.read()
+          # Execute ALL SQL files in sql folder
+          for file in glob.glob("sql/*.sql"):
+              print(f"Executing {file}")
 
-          for stmt in sql.split(";"):
-              if stmt.strip():
-                  cursor.execute(stmt)
+              with open(file) as f:
+                  sql = f.read()
+
+              for stmt in sql.split(";"):
+                  if stmt.strip():
+                      cursor.execute(stmt)
 
           cursor.close()
           conn.close()
 
-          print("Deployment successful")
+          print("Deployment successful 🚀")
           EOF
