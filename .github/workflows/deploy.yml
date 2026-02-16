@@ -37,25 +37,32 @@ jobs:
               password = "${{ secrets.DEV_SNOWFLAKE_PASSWORD }}"
               database = "${{ secrets.DEV_SNOWFLAKE_DATABASE }}"
               schema = "${{ secrets.DEV_SNOWFLAKE_SCHEMA }}"
+              role = "${{ secrets.DEV_SNOWFLAKE_ROLE }}"
           else:
               user = "${{ secrets.PROD_SNOWFLAKE_USERNAME }}"
               password = "${{ secrets.PROD_SNOWFLAKE_PASSWORD }}"
               database = "${{ secrets.PROD_SNOWFLAKE_DATABASE }}"
               schema = "${{ secrets.PROD_SNOWFLAKE_SCHEMA }}"
+              role = "${{ secrets.PROD_SNOWFLAKE_ROLE }}"
 
           warehouse = "${{ secrets.SNOWFLAKE_WAREHOUSE }}"
+          account = "${{ secrets.SNOWFLAKE_ACCOUNT }}"
 
           conn = snowflake.connector.connect(
               user=user,
               password=password,
-              account="${{ secrets.SNOWFLAKE_ACCOUNT }}",
-              warehouse=warehouse,
-              database=database,
-              schema=schema
+              account=account
           )
 
           cursor = conn.cursor()
 
+          # Activate correct context
+          cursor.execute(f"USE ROLE {role}")
+          cursor.execute(f"USE WAREHOUSE {warehouse}")
+          cursor.execute(f"USE DATABASE {database}")
+          cursor.execute(f"USE SCHEMA {schema}")
+
+          # Execute all SQL files in order
           for file in sorted(glob.glob("sql/*.sql")):
               print(f"Executing {file}")
               with open(file) as f:
