@@ -1,8 +1,9 @@
-name: Deploy to Snowflake
+name: Multi Environment Deploy
 
 on:
   push:
     branches:
+      - develop
       - main
 
 jobs:
@@ -13,51 +14,53 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set environment variables
+        id: set_env
+        run: |
+          if [[ "${GITHUB_REF##*/}" == "develop" ]]; then
+            echo "USER=${{ secrets.DEV_SNOWFLAKE_USERNAME }}" >> $GITHUB_ENV
+            echo "PASSWORD=${{ secrets.DEV_SNOWFLAKE_PASSWORD }}" >> $GITHUB_ENV
+            echo "DATABASE=${{ secrets.DEV_SNOWFLAKE_DATABASE }}" >> $GITHUB_ENV
+            echo "SCHEMA=${{ secrets.DEV_SNOWFLAKE_SCHEMA }}" >> $GITHUB_ENV
+          else
+            echo "USER=${{ secrets.PROD_SNOWFLAKE_USERNAME }}" >> $GITHUB_ENV
+            echo "PASSWORD=${{ secrets.PROD_SNOWFLAKE_PASSWORD }}" >> $GITHUB_ENV
+            echo "DATABASE=${{ secrets.PROD_SNOWFLAKE_DATABASE }}" >> $GITHUB_ENV
+            echo "SCHEMA=${{ secrets.PROD_SNOWFLAKE_SCHEMA }}" >> $GITHUB_ENV
+          fi
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
       - name: Install Snowflake Connector
-        run: |
-          pip install snowflake-connector-python
+        run: pip install snowflake-connector-python
 
-      - name: Execute SQL Script
-        env:
-          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USERNAME }}
-          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
-          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
-          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
-          SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
-
+      - name: Execute SQL
         run: |
           python <<EOF
           import snowflake.connector
           import os
 
           conn = snowflake.connector.connect(
-              user=os.environ["SNOWFLAKE_USER"],
-              password=os.environ["SNOWFLAKE_PASSWORD"],
-              account=os.environ["SNOWFLAKE_ACCOUNT"],
-              role=os.environ["SNOWFLAKE_ROLE"],
-              warehouse=os.environ["SNOWFLAKE_WAREHOUSE"],
-              database=os.environ["SNOWFLAKE_DATABASE"],
-              schema=os.environ["SNOWFLAKE_SCHEMA"]
+              user=os.environ["USER"],
+              password=os.environ["PASSWORD"],
+              account="${{ secrets.SNOWFLAKE_ACCOUNT }}",
+              warehouse="${{ secrets.SNOWFLAKE_WAREHOUSE }}",
+              database=os.environ["DATABASE"],
+              schema=os.environ["SCHEMA"]
           )
 
           cursor = conn.cursor()
+          with open("sql/create_table.sql") as f:
+              sql = f.read()
 
-          with open("sql/create_table.sql", "r") as file:
-              sql_commands = file.read()
-
-          for command in sql_commands.split(";"):
-              if command.strip():
-                  cursor.execute(command)
+          for stmt in sql.split(";"):
+              if stmt.strip():
+                  cursor.execute(stmt)
 
           cursor.close()
           conn.close()
-
-          print("SQL executed successfully!")
+          print("Deployment successful")
           EOF
