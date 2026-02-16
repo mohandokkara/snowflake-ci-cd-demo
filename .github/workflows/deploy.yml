@@ -9,15 +9,12 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    container:
+      image: snowflakedb/snowflake-cli:latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Install SnowSQL (non-interactive)
-        run: |
-          curl -L https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.4/linux_x86_64/snowsql-1.4.5-linux_x86_64.bash -o snowsql.bash
-          SNOWSQL_DEST=~/snowsql bash snowsql.bash --yes
-          echo "$HOME/snowsql/bin" >> $GITHUB_PATH
 
       - name: Execute SQL Script
         env:
