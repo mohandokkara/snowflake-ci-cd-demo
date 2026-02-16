@@ -13,18 +13,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Snowflake CLI
-        uses: snowflakedb/snowflake-cli-action@v1
+      - name: Install SnowSQL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gnupg
+          curl -O https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.4/linux_x86_64/snowsql-1.4.5-linux_x86_64.bash
+          bash snowsql-1.4.5-linux_x86_64.bash
 
       - name: Execute SQL Script
         env:
-          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USERNAME }}
-          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
-          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
-          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
-          SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
+          SNOWSQL_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWSQL_USER: ${{ secrets.SNOWFLAKE_USERNAME }}
+          SNOWSQL_PWD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWSQL_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+          SNOWSQL_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+          SNOWSQL_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+          SNOWSQL_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
 
         run: |
-          snow sql -f sql/create_table.sql
+          snowsql -f sql/create_table.sql
