@@ -14,21 +14,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set environment variables
-        id: set_env
-        run: |
-          if [[ "${GITHUB_REF##*/}" == "develop" ]]; then
-            echo "USER=${{ secrets.DEV_SNOWFLAKE_USERNAME }}" >> $GITHUB_ENV
-            echo "PASSWORD=${{ secrets.DEV_SNOWFLAKE_PASSWORD }}" >> $GITHUB_ENV
-            echo "DATABASE=${{ secrets.DEV_SNOWFLAKE_DATABASE }}" >> $GITHUB_ENV
-            echo "SCHEMA=${{ secrets.DEV_SNOWFLAKE_SCHEMA }}" >> $GITHUB_ENV
-          else
-            echo "USER=${{ secrets.PROD_SNOWFLAKE_USERNAME }}" >> $GITHUB_ENV
-            echo "PASSWORD=${{ secrets.PROD_SNOWFLAKE_PASSWORD }}" >> $GITHUB_ENV
-            echo "DATABASE=${{ secrets.PROD_SNOWFLAKE_DATABASE }}" >> $GITHUB_ENV
-            echo "SCHEMA=${{ secrets.PROD_SNOWFLAKE_SCHEMA }}" >> $GITHUB_ENV
-          fi
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -43,16 +28,32 @@ jobs:
           import snowflake.connector
           import os
 
+          branch = "${GITHUB_REF##*/}"
+
+          if branch == "develop":
+              user = "${{ secrets.DEV_SNOWFLAKE_USERNAME }}"
+              password = "${{ secrets.DEV_SNOWFLAKE_PASSWORD }}"
+              database = "${{ secrets.DEV_SNOWFLAKE_DATABASE }}"
+              schema = "${{ secrets.DEV_SNOWFLAKE_SCHEMA }}"
+              warehouse = "${{ secrets.DEV_SNOWFLAKE_WAREHOUSE }}"
+          else:
+              user = "${{ secrets.PROD_SNOWFLAKE_USERNAME }}"
+              password = "${{ secrets.PROD_SNOWFLAKE_PASSWORD }}"
+              database = "${{ secrets.PROD_SNOWFLAKE_DATABASE }}"
+              schema = "${{ secrets.PROD_SNOWFLAKE_SCHEMA }}"
+              warehouse = "${{ secrets.PROD_SNOWFLAKE_WAREHOUSE }}"
+
           conn = snowflake.connector.connect(
-              user=os.environ["USER"],
-              password=os.environ["PASSWORD"],
+              user=user,
+              password=password,
               account="${{ secrets.SNOWFLAKE_ACCOUNT }}",
-              warehouse="${{ secrets.SNOWFLAKE_WAREHOUSE }}",
-              database=os.environ["DATABASE"],
-              schema=os.environ["SCHEMA"]
+              warehouse=warehouse,
+              database=database,
+              schema=schema
           )
 
           cursor = conn.cursor()
+
           with open("sql/create_table.sql") as f:
               sql = f.read()
 
@@ -62,5 +63,6 @@ jobs:
 
           cursor.close()
           conn.close()
+
           print("Deployment successful")
           EOF
