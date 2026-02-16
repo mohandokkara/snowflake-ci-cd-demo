@@ -13,12 +13,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install SnowSQL
+      - name: Install SnowSQL (non-interactive)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gnupg
-          curl -O https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.4/linux_x86_64/snowsql-1.4.5-linux_x86_64.bash
-          bash snowsql-1.4.5-linux_x86_64.bash
+          curl -L https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.4/linux_x86_64/snowsql-1.4.5-linux_x86_64.bash -o snowsql.bash
+          SNOWSQL_DEST=~/snowsql bash snowsql.bash --yes
+          echo "$HOME/snowsql/bin" >> $GITHUB_PATH
 
       - name: Execute SQL Script
         env:
