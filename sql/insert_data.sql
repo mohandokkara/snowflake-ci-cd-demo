@@ -1,0 +1,4 @@
+INSERT INTO DEMO_TABLE1 (ID, NAME, ENVIRONMENT)
+VALUES
+(1, 'Mohan', 'DEV'),
+(2, 'Cool Boy', 'DEV');
