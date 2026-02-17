@@ -1,4 +1,6 @@
 INSERT INTO DEMO_TABLE5 (ID, NAME, ENVIRONMENT)
 VALUES
-(1, 'Mohan', 'FROM_GITHUB'),
-(2, 'Cool Boy', 'FROM_GITHUB');
+(10, 'sai', 'FROM_GITHUB'),
+(20, 'Ravi', 'FROM_GITHUB');
+
+
